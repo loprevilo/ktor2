@@ -3,29 +3,59 @@ package org.example.project.api
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class User(
-    val id: Long,
-    val name: String,
-    val email: String? = null,
-    val username: String? = null
+data class Provincias(
+    val CODPROV: String,
+    val NOMBRE_PROVINCIA: String,
+    val CODAUTON: String,
+    val COMUNIDAD_CIUDAD_AUTONOMA: String,
+    val CAPITAL_PROVINCIA: String
 )
 
 @Serializable
 data class Post(
-    val id: Long,
-    val userId: Long,
-    val title: String,
-    val body: String? = null
+    val CODPROV: String,
+    val NOMBRE_PROVINCIA: String,
+    val CODAUTON: String,
+    val COMUNIDAD_CIUDAD_AUTONOMA: String,
+    val CAPITAL_PROVINCIA: String
 )
+
 @Serializable
 data class ProvinciaResponse(
-    val CODPROV: Int,
-    val NOMBRE_PROVINCIA: String,
-    val email: String? = null,
-    val username: String? = null,
-    val phone: String? = null,
-    val website: String? = null
+    val Provincias: List<Provincias>
 )
 
+@Serializable
+data class WeatherDetail(
+    val municipio: MunicipioInfo,
+    val temperatura_actual: String,
+    val humedad: String,
+    val estado_cielo: EstadoCielo,
+    val amanecer: String,
+    val ocaso: String
+)
 
-typealias UserList = List<UserResponse>
+@Serializable
+data class MunicipioInfo(
+    val NOMBRE: String
+)
+
+@Serializable
+data class EstadoCielo(
+    val description: String
+)
+
+@Serializable
+data class Municipio(
+    val CODIGOINE: String,
+    val NOMBRE: String,
+    val CODPROV: String
+)
+
+@Serializable
+data class MunicipiosResponse(
+    val municipios: List<Municipio>
+)
+
+typealias ProvinciasList = List<ProvinciaResponse>
+typealias WeatherDetailList = List<WeatherDetail>
