@@ -41,54 +41,57 @@ fun App() {
     var textoBusqueda by remember { mutableStateOf("") }
     var esCelsius by remember { mutableStateOf(true) }
     
-    // Disparadores para carga de datos
-    var provinciaParaCargar by remember { mutableStateOf<Provincias?>(null) }
-    var ciudadParaCargar by remember { mutableStateOf<Pair<Municipio, String>?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Funciones de carga
+    fun cargarProvincias() {
+        scope.launch {
+            loading = true
+            try {
+                provincias = ApiExample.fetchProvincias().Provincias
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                loading = false
+            }
+        }
+    }
+
+    fun cargarMunicipios(provincia: Provincias) {
+        scope.launch {
+            loading = true
+            try {
+                municipios = ApiExample.fetchMunicipios(provincia.CODPROV).municipios
+                pantallaActual = Pantalla.ListaCiudades(provincia)
+                textoBusqueda = ""
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                loading = false
+            }
+        }
+    }
+
+    fun cargarClima(ciudad: Municipio, provinciaNombre: String) {
+        scope.launch {
+            loading = true
+            try {
+                datosClima = ApiExample.fetchWeather(ciudad.CODPROV, ciudad.CODIGOINE)
+                if (!busquedasRecientes.any { it.first.CODIGOINE == ciudad.CODIGOINE }) {
+                    busquedasRecientes = (listOf(ciudad to provinciaNombre) + busquedasRecientes).take(5)
+                }
+                pantallaActual = Pantalla.VistaClima(ciudad, provinciaNombre)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                loading = false
+            }
+        }
+    }
 
     // Cargar provincias al inicio
     LaunchedEffect(Unit) {
-        loading = true
-        try {
-            provincias = ApiExample.fetchProvincias().Provincias
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            loading = false
-        }
-    }
-    
-    // Cargar municipios cuando cambia provinciaParaCargar
-    LaunchedEffect(provinciaParaCargar) {
-        val provincia = provinciaParaCargar ?: return@LaunchedEffect
-        loading = true
-        try {
-            municipios = ApiExample.fetchMunicipios(provincia.CODPROV).municipios
-            pantallaActual = Pantalla.ListaCiudades(provincia)
-            textoBusqueda = ""
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            loading = false
-            provinciaParaCargar = null // Resetear disparador
-        }
-    }
-    
-    // Cargar clima cuando cambia ciudadParaCargar
-    LaunchedEffect(ciudadParaCargar) {
-        val (ciudad, provinciaNombre) = ciudadParaCargar ?: return@LaunchedEffect
-        loading = true
-        try {
-            datosClima = ApiExample.fetchWeather(ciudad.CODPROV, ciudad.CODIGOINE)
-            if (!busquedasRecientes.any { it.first.CODIGOINE == ciudad.CODIGOINE }) {
-                busquedasRecientes = (listOf(ciudad to provinciaNombre) + busquedasRecientes).take(5)
-            }
-            pantallaActual = Pantalla.VistaClima(ciudad, provinciaNombre)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            loading = false
-            ciudadParaCargar = null // Resetear disparador
-        }
+        cargarProvincias()
     }
 
     MaterialTheme(
@@ -139,41 +142,48 @@ fun App() {
 
                 // Contenido Principal
                 Box(modifier = Modifier.weight(1f)) {
-                    when (val pantalla = pantallaActual) {
-                        is Pantalla.ListaProvincias -> {
-                            PantallaListaProvincias(
-                                provincias = provincias,
-                                loading = loading,
-                                textoBusqueda = textoBusqueda,
-                                alCambiarBusqueda = { textoBusqueda = it },
-                                busquedasRecientes = busquedasRecientes,
-                                alSeleccionarProvincia = { provincia ->
-                                    provinciaParaCargar = provincia
-                                },
-                                alSeleccionarReciente = { ciudad, provinciaNombre ->
-                                    ciudadParaCargar = ciudad to provinciaNombre
-                                }
-                            )
+                    AnimatedContent(
+                        targetState = pantallaActual,
+                        transitionSpec = {
+                            fadeIn() togetherWith fadeOut()
                         }
-                        is Pantalla.ListaCiudades -> {
-                            PantallaListaCiudades(
-                                nombreProvincia = pantalla.provincia.NOMBRE_PROVINCIA,
-                                ciudades = municipios,
-                                loading = loading,
-                                textoBusqueda = textoBusqueda,
-                                alCambiarBusqueda = { textoBusqueda = it },
-                                alSeleccionarCiudad = { ciudad ->
-                                    ciudadParaCargar = ciudad to pantalla.provincia.NOMBRE_PROVINCIA
-                                }
-                            )
-                        }
-                        is Pantalla.VistaClima -> {
-                            PantallaDetalleClima(
-                                datos = datosClima,
-                                loading = loading,
-                                esCelsius = esCelsius,
-                                alCambiarUnidad = { esCelsius = !esCelsius }
-                            )
+                    ) { pantalla ->
+                        when (pantalla) {
+                            is Pantalla.ListaProvincias -> {
+                                PantallaListaProvincias(
+                                    provincias = provincias,
+                                    loading = loading,
+                                    textoBusqueda = textoBusqueda,
+                                    alCambiarBusqueda = { textoBusqueda = it },
+                                    busquedasRecientes = busquedasRecientes,
+                                    alSeleccionarProvincia = { provincia ->
+                                        cargarMunicipios(provincia)
+                                    },
+                                    alSeleccionarReciente = { ciudad, provinciaNombre ->
+                                        cargarClima(ciudad, provinciaNombre)
+                                    }
+                                )
+                            }
+                            is Pantalla.ListaCiudades -> {
+                                PantallaListaCiudades(
+                                    nombreProvincia = pantalla.provincia.NOMBRE_PROVINCIA,
+                                    ciudades = municipios,
+                                    loading = loading,
+                                    textoBusqueda = textoBusqueda,
+                                    alCambiarBusqueda = { textoBusqueda = it },
+                                    alSeleccionarCiudad = { ciudad ->
+                                        cargarClima(ciudad, pantalla.provincia.NOMBRE_PROVINCIA)
+                                    }
+                                )
+                            }
+                            is Pantalla.VistaClima -> {
+                                PantallaDetalleClima(
+                                    datos = datosClima,
+                                    loading = loading,
+                                    esCelsius = esCelsius,
+                                    alCambiarUnidad = { esCelsius = !esCelsius }
+                                )
+                            }
                         }
                     }
                 }
@@ -214,6 +224,21 @@ fun PantallaListaProvincias(
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             shape = RoundedCornerShape(12.dp)
         )
+
+        Button(
+            onClick = { 
+                // Simular auto-ubicación con Madrid por defecto
+                val madrid = Municipio(CODIGOINE = "28079000000", NOMBRE = "Madrid", CODPROV = "28")
+                alSeleccionarReciente(madrid, "Madrid")
+            },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+        ) {
+            Icon(Icons.Default.MyLocation, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Auto-Ubicación (Simulada)", color = Color.Black)
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         
