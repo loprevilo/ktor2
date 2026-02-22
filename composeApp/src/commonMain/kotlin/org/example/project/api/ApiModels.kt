@@ -1,6 +1,7 @@
 package org.example.project.api
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class Provincias(
@@ -22,7 +23,7 @@ data class Post(
 
 @Serializable
 data class ProvinciaResponse(
-    val Provincias: List<Provincias>
+    @SerialName("provincias") val provincias: List<Provincias>
 )
 
 @Serializable
@@ -30,8 +31,23 @@ data class WeatherDetail(
     val municipio: MunicipioInfo,
     val temperatura_actual: String,
     val humedad: String,
-    val estado_cielo: EstadoCielo,
-    val amanecer: String,
+    @SerialName("stateSky") val estado_cielo: EstadoCielo,
+    val pronostico: Pronostico? = null
+)
+
+@Serializable
+data class Pronostico(
+    val hoy: PronosticoDia
+)
+
+@Serializable
+data class PronosticoDia(
+    @SerialName("@attributes") val attributes: PronosticoAttributes
+)
+
+@Serializable
+data class PronosticoAttributes(
+    @SerialName("orto") val amanecer: String,
     val ocaso: String
 )
 

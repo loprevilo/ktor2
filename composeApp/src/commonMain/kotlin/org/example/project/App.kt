@@ -48,7 +48,7 @@ fun App() {
         scope.launch {
             loading = true
             try {
-                provincias = ApiExample.fetchProvincias().Provincias
+                provincias = ApiExample.fetchProvincias().provincias
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -223,23 +223,7 @@ fun PantallaListaProvincias(
             placeholder = { Text("Buscar provincia...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             shape = RoundedCornerShape(12.dp)
-        )
-
-        Button(
-            onClick = { 
-                // Simular auto-ubicación con Madrid por defecto
-                val madrid = Municipio(CODIGOINE = "28079000000", NOMBRE = "Madrid", CODPROV = "28")
-                alSeleccionarReciente(madrid, "Madrid")
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-        ) {
-            Icon(Icons.Default.MyLocation, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Auto-Ubicación (Simulada)", color = Color.Black)
-        }
-        
+        )        
         Spacer(modifier = Modifier.height(16.dp))
         
         if (loading) {
@@ -389,8 +373,8 @@ fun PantallaDetalleClima(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     DetalleFila(Icons.Default.WaterDrop, "Humedad", "${datos.humedad}%")
-                    DetalleFila(Icons.Default.WbSunny, "Salida del sol", datos.amanecer)
-                    DetalleFila(Icons.Default.WbTwilight, "Puesta del sol", datos.ocaso)
+                    DetalleFila(Icons.Default.WbSunny, "Salida del sol", datos.pronostico?.hoy?.attributes?.amanecer ?: "--:--")
+                    DetalleFila(Icons.Default.WbTwilight, "Puesta del sol", datos.pronostico?.hoy?.attributes?.ocaso ?: "--:--")
                 }
             }
         }
